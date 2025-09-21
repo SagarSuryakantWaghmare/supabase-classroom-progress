@@ -14,8 +14,9 @@ export async function GET(request: Request) {
       .eq('class_id', classId)
       .order('due_date', { ascending: true });
 
+    if (!data) throw new Error('No data returned');
     return NextResponse.json(data);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch assignments' },
       { status: 500 }
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
   const { title, description, due_date, max_score, class_id } = await request.json();
   
   try {
-    const { data, error } = await supabase
+    const { data, error: insertError } = await supabase
       .from('assignments')
       .insert([{ 
         title, 
@@ -40,9 +41,9 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (insertError) throw insertError;
     return NextResponse.json(data, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to create assignment' },
       { status: 500 }

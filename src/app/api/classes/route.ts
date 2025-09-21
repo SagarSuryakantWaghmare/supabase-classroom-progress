@@ -14,7 +14,7 @@ export async function GET() {
     if (!data) throw new Error('No data returned');
 
     return NextResponse.json(data);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch classes' },
       { status: 500 }
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     if (!data) throw new Error('No data returned');
 
     return NextResponse.json(data, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to create class' },
       { status: 500 }

@@ -84,7 +84,7 @@ export const useClassAverages = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setError, setLoading]);
 
   return {
     fetchClassAverages,
@@ -93,3 +93,5 @@ export const useClassAverages = () => {
     error,
   };
 };
+
+

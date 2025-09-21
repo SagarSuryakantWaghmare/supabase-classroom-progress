@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     if (!data) throw new Error('No data returned');
     return NextResponse.json(data);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch scores' },
       { status: 500 }
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const { assignment_id, student_id, score, feedback } = await request.json();
   
   try {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('scores')
       .upsert({
         student_id,
@@ -44,10 +44,9 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (error) throw error;
-    if (!data) throw new Error('No data returned');
+    if (!data) throw new Error('Failed to save score');
     return NextResponse.json(data, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to save score' },
       { status: 500 }

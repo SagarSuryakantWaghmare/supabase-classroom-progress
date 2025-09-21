@@ -17,13 +17,13 @@ export async function GET() {
       );
     }
 
-    const { data: users, error: fetchError } = await supabase
+    const { data: users } = await supabase
       .from('users')
       .select('*');
 
-    if (fetchError) throw fetchError;
+    if (!users) throw new Error('No users found');
     return NextResponse.json(users);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch users' },
       { status: 500 }
@@ -53,16 +53,6 @@ export async function POST(request: Request) {
     const user = authData?.user;
 
     // 2. Create profile in profiles table
-    interface ProfileData {
-      id: string;
-      email: string;
-      name: string;
-      role: string;
-      class_id: string | null;
-      created_at: string;
-      updated_at: string;
-    }
-
     if (!user) {
       throw new Error('User creation failed');
     }
@@ -83,9 +73,10 @@ export async function POST(request: Request) {
 
     if (profileError) throw profileError;
     return NextResponse.json(profileData, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create user';
     return NextResponse.json(
-      { error: error.message || 'Failed to create user' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

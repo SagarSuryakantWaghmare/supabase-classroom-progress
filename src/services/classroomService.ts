@@ -403,13 +403,6 @@ export const dashboardService = {
   // Get dashboard data for a student
   getStudentDashboard: async (studentId: string): Promise<StudentDashboardData> => {
     // Get student's class enrollments
-    interface EnrollmentWithClass {
-      class: {
-        id: string;
-        name: string;
-      } | null;
-    }
-
     const { data: enrollments, error: enrollmentsError } = await supabase
       .from('enrollments')
       .select('class:classes(*)')

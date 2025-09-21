@@ -12,18 +12,18 @@ export async function POST(request: Request) {
       password,
     });
 
-    if (!data.session) throw new Error('No session returned');
+    if (!data.session) throw new Error('Authentication failed');
 
     if (!data?.user) throw new Error('No user data returned');
     
     // Get additional user data from profiles table
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
       .select('role, class_id, name')
       .eq('id', data.user.id)
       .single();
 
-    if (profileError) throw profileError;
+    if (!profile) throw new Error('Profile not found');
 
     return NextResponse.json({
       user: {
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       },
       session: data.session
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Invalid login credentials' },
       { status: 401 }
