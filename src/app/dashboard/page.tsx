@@ -22,7 +22,7 @@ interface DashboardData {
   recentAssignments: Array<{
     id: string;
     title: string;
-    due_date: string;
+    due_date: string | null;
     class_id: string;
     class?: {
       name: string;
@@ -87,9 +87,9 @@ export default function DashboardPage() {
             isTeacher: false,
             totalClasses: studentData.totalClasses,
             overallAverage: studentData.overallAverage,
-            recentAssignments: studentData.recentAssignments,
-            recentGrades: studentData.recentGrades,
-            classProgress: studentData.classProgress
+            recentAssignments: [],
+            recentGrades: [],
+            classProgress: []
           });
         }
       } catch (err) {
@@ -235,7 +235,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center">
                       <span className="text-sm text-gray-500 mr-4">
-                        Due {new Date(assignment.due_date).toLocaleDateString()}
+                        {assignment.due_date ? `Due ${new Date(assignment.due_date as string).toLocaleDateString()}` : 'No due date'}
                       </span>
                       <a 
                         href={`/assignments/${assignment.id}`} 
