@@ -1,16 +1,19 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Inter, Poppins } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const inter = Inter({ 
   subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap'
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const poppins = Poppins({
+  weight: ['400', '500', '600', '700'],
   subsets: ['latin'],
+  variable: '--font-poppins',
+  display: 'swap'
 });
 
 export const metadata: Metadata = {
@@ -24,10 +27,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full bg-gray-50">
-      <body className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+    <html lang="en" className={`${inter.variable} ${poppins.variable} h-full`}>
+      <body className="font-sans bg-gray-50 text-gray-900">
         <AuthProvider>
-          <div className="min-h-full">
+          <div className="min-h-screen flex flex-col">
             {children}
           </div>
         </AuthProvider>
