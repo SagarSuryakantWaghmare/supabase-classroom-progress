@@ -65,7 +65,7 @@ export const ProtectedRoute = ({
       } catch (err) {
         console.error('Error checking access:', err);
         const error = err instanceof Error ? err : new Error('An unknown error occurred');
-        setError(error);
+        clearError(); // Clear any previous errors
         setAccessDenied(true);
       } finally {
         if (!isLoading) {

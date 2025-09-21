@@ -1,100 +1,259 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ClassList } from "./_components/class-list";
-import { ProgressOverview } from "./_components/progress-overview";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { StatCard } from '@/components/ui/StatCard';
+import { 
+  AcademicCapIcon, 
+  UserGroupIcon, 
+  DocumentTextIcon,
+  ClockIcon,
+  ArrowUpIcon,
+  ArrowDownIcon
+} from '@heroicons/react/24/outline';
+
+interface ClassInfo {
+  id: string;
+  name: string;
+  studentCount: number;
+  averageScore: number;
+  assignmentsDue: number;
+}
 
 export default function TeacherDashboard() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-950 via-black to-orange-900 text-white">
-      <header className="bg-orange-900/50 backdrop-blur-md border-b border-orange-800">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent">
-            Classroom Progress Tracker
-          </h1>
-          <nav className="flex items-center space-x-4">
-            <Button variant="ghost" className="text-orange-200 hover:bg-orange-800/50">
-              Profile
-            </Button>
-            <Button variant="outline" className="border-orange-600 text-orange-200 hover:bg-orange-800/50">
-              Sign Out
-            </Button>
-          </nav>
+  const [loading, setLoading] = useState(true);
+  const [classes, setClasses] = useState<ClassInfo[]>([]);
+  const [selectedClass, setSelectedClass] = useState<ClassInfo | null>(null);
+
+  useEffect(() => {
+    // Simulate API call
+    const fetchTeacherClasses = async () => {
+      try {
+        setTimeout(() => {
+          setClasses([
+            { id: '1', name: 'Mathematics 101', studentCount: 32, averageScore: 82, assignmentsDue: 2 },
+            { id: '2', name: 'Advanced Calculus', studentCount: 24, averageScore: 78, assignmentsDue: 1 },
+            { id: '3', name: 'Linear Algebra', studentCount: 28, averageScore: 85, assignmentsDue: 0 },
+          ]);
+          setLoading(false);
+        }, 1000);
+      } catch (error) {
+        console.error('Error fetching teacher classes:', error);
+        setLoading(false);
+      }
+    };
+    
+    fetchTeacherClasses();
+  }, []);
+
+  if (loading) {
+    return (
+      <AppLayout title="Loading...">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      </header>
+      </AppLayout>
+    );
+  }
 
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="overview" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <TabsList className="bg-orange-900/30 border border-orange-800">
-              <TabsTrigger 
-                value="overview" 
-                className="data-[state=active]:bg-orange-800/50 data-[state=active]:text-orange-200"
-              >
-                Overview
-              </TabsTrigger>
-              <TabsTrigger 
-                value="classes" 
-                className="data-[state=active]:bg-orange-800/50 data-[state=active]:text-orange-200"
-              >
-                My Classes
-              </TabsTrigger>
-              <TabsTrigger 
-                value="progress" 
-                className="data-[state=active]:bg-orange-800/50 data-[state=active]:text-orange-200"
-              >
-                Student Progress
-              </TabsTrigger>
-            </TabsList>
-            <Button className="bg-orange-600 hover:bg-orange-700">
-              + Add New Class
-            </Button>
-          </div>
+  return (
+    <AppLayout 
+      title="Teacher Dashboard"
+      headerActions={
+        <button
+          type="button"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Create New Class
+        </button>
+      }
+    >
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 gap-5 mt-6 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total Classes"
+          value={classes.length}
+          icon={<AcademicCapIcon className="h-6 w-6" />}
+        />
+        <StatCard
+          title="Total Students"
+          value={classes.reduce((sum, cls) => sum + cls.studentCount, 0)}
+          icon={<UserGroupIcon className="h-6 w-6" />}
+        />
+        <StatCard
+          title="Average Class Score"
+          value={`${Math.round(classes.reduce((sum, cls) => sum + cls.averageScore, 0) / classes.length)}%`}
+          icon={<DocumentTextIcon className="h-6 w-6" />}
+        />
+        <StatCard
+          title="Assignments Due"
+          value={classes.reduce((sum, cls) => sum + cls.assignmentsDue, 0)}
+          icon={<ClockIcon className="h-6 w-6" />}
+          className="bg-amber-50"
+        />
+      </div>
 
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="bg-orange-900/20 border-orange-800/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-orange-300">
-                    Total Students
-                  </CardTitle>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    className="h-4 w-4 text-orange-500"
+      {/* Classes List */}
+      <div className="mt-8">
+        <h2 className="text-lg font-medium text-gray-900">My Classes</h2>
+        <div className="mt-4 grid gap-6 lg:grid-cols-3">
+          {classes.map((cls) => (
+            <div key={cls.id} className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">{cls.name}</h3>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {cls.studentCount} students
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-500">Average Score</span>
+                    <span className="text-sm font-semibold text-gray-900">{cls.averageScore}%</span>
+                  </div>
+                  <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className="bg-blue-600 h-2.5 rounded-full" 
+                      style={{ width: `${cls.averageScore}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-500">Assignments Due</span>
+                    <span className={`text-sm font-semibold ${cls.assignmentsDue > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                      {cls.assignmentsDue} {cls.assignmentsDue === 1 ? 'assignment' : 'assignments'}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    onClick={() => setSelectedClass(cls)}
                   >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                    View Class
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Upcoming Tasks */}
+      <div className="mt-8">
+        <h2 className="text-lg font-medium text-gray-900">Upcoming Tasks</h2>
+        <div className="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
+          <ul role="list" className="divide-y divide-gray-200">
+            {[
+              { id: 1, class: 'Mathematics 101', task: 'Grade Quiz #3', due: 'Tomorrow', priority: 'high' },
+              { id: 2, class: 'Advanced Calculus', task: 'Prepare lecture on Derivatives', due: 'In 2 days', priority: 'medium' },
+              { id: 3, class: 'Linear Algebra', task: 'Update course materials', due: 'Next week', priority: 'low' },
+            ].map((task) => (
+              <li key={task.id} className="px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className={`h-3 w-3 rounded-full mr-3 ${
+                      task.priority === 'high' ? 'bg-red-500' : 
+                      task.priority === 'medium' ? 'bg-yellow-500' : 'bg-gray-300'
+                    }`}></div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{task.task}</p>
+                      <p className="text-sm text-gray-500">{task.class}</p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500">Due {task.due}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Class Details Modal */}
+      {selectedClass && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">{selectedClass.name}</h3>
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-gray-500"
+                  onClick={() => setSelectedClass(null)}
+                >
+                  <span className="sr-only">Close</span>
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-200">247</div>
-                  <p className="text-xs text-orange-400">+20.1% from last month</p>
-                </CardContent>
-              </Card>
-              {/* Add more stat cards */}
+                </button>
+              </div>
             </div>
-            <ProgressOverview />
-          </TabsContent>
-
-          <TabsContent value="classes">
-            <ClassList />
-          </TabsContent>
-
-          <TabsContent value="progress">
-            <div className="rounded-lg border border-orange-800/50 p-6 bg-orange-900/10">
-              <h2 className="text-xl font-semibold mb-4 text-orange-200">Student Progress</h2>
-              <p className="text-orange-300">Progress tracking will be displayed here</p>
+            <div className="px-6 py-4">
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Students</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">{selectedClass.studentCount}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Average Score</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">{selectedClass.averageScore}%</p>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Quick Actions</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Create Assignment
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    View Students
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mt-8">
+                <h4 className="text-sm font-medium text-gray-500 mb-4">Recent Assignments</h4>
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Assignment #{i}</p>
+                        <p className="text-xs text-gray-500">Due: {new Date(Date.now() + i * 86400000).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                          Grade
+                        </button>
+                        <button className="text-gray-600 hover:text-gray-800 text-sm font-medium">
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+              <button
+                type="button"
+                className="px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                onClick={() => setSelectedClass(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppLayout>
   );
 }
