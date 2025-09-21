@@ -1,0 +1,15 @@
+{
+  "supabase": {
+    "url": "your-supabase-url",
+    "anonKey": "your-supabase-anon-key",
+    "serviceRoleKey": "your-supabase-service-role-key"
+  },
+  "mongodb": {
+    "uri": "your-mongodb-connection-string",
+    "dbName": "classroom_tracker"
+  },
+  "app": {
+    "port": 3000,
+    "environment": "development"
+  }
+}
