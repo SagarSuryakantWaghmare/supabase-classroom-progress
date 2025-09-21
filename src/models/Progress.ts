@@ -182,8 +182,14 @@ export class ProgressService {
 
     if (error) return { data: null, error };
     
+    // Define interface for student data
+    interface StudentData {
+      student_id: string;
+      [key: string]: unknown;
+    }
+
     // Find the student's rank
-    const studentRank = studentsData.findIndex((s: any) => s.student_id === studentId) + 1;
+    const studentRank = studentsData.findIndex((s: StudentData) => s.student_id === studentId) + 1;
     
     return { 
       data: studentRank > 0 ? { 

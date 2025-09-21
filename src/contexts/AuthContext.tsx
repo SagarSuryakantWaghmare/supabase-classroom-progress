@@ -2,20 +2,12 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { UserRole } from '@/models/User';
+import { IUser } from '@/models/User';
 import AuthService, { type SignUpData, type LoginData } from '@/services/auth.service';
 
-type AuthUser = User & {
-  role: UserRole;
-  name: string;
-  email: string;
-  class_id?: string | null;
-};
-
 type AuthContextType = {
-  user: AuthUser | null;
+  user: IUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: Error | null;
@@ -29,7 +21,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<IUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const router = useRouter();
@@ -37,22 +29,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const clearError = useCallback(() => setError(null), []);
 
   // Handle successful authentication
-  const handleAuthSuccess = useCallback((userData: any) => {
+  const handleAuthSuccess = useCallback((userData: IUser | null) => {
     if (!userData) {
       setUser(null);
       return;
     }
-
-    const authUser: AuthUser = {
-      ...userData,
-      id: userData.id,
-      email: userData.email,
-      name: userData.name || '',
-      role: userData.role || 'student',
-      class_id: userData.class_id || null,
-    };
-
-    setUser(authUser);
+    setUser(userData);
     setError(null);
   }, []);
 

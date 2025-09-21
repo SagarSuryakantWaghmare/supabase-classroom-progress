@@ -6,63 +6,104 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/ui/StatCard';
 import { 
   UsersIcon, 
-  UserGroupIcon, 
   AcademicCapIcon, 
   DocumentTextIcon,
-  ArrowUpIcon,
-  ArrowDownIcon
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import { dashboardService } from '@/services/classroomService';
 
-interface SchoolStats {
-  totalStudents: number;
-  totalTeachers: number;
+interface DashboardData {
+  isTeacher: boolean;
   totalClasses: number;
-  totalAssignments: number;
-  averageScore: number;
-  classAverages: Array<{
+  totalStudents?: number;
+  totalAssignments?: number;
+  overallAverage?: number;
+  submissionsNeedingGrading?: number;
+  recentAssignments: Array<{
     id: string;
-    name: string;
-    teacher: string;
-    studentCount: number;
-    averageScore: number;
+    title: string;
+    due_date: string;
+    class_id: string;
+    class?: {
+      name: string;
+    };
+  }>;
+  recentGrades: Array<{
+    id: string;
+    grade: number;
+    assignment: {
+      id: string;
+      title: string;
+      total_points: number;
+      class: {
+        id: string;
+        name: string;
+      };
+    };
+  }>;
+  classProgress: Array<{
+    id: string;
+    class_id: string;
+    student_id: string;
+    total_assignments: number;
+    completed_assignments: number;
+    average_score: number;
+    current_grade: string;
+    last_updated: string;
+    class_name?: string;
   }>;
 }
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<SchoolStats | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchSchoolStats = async () => {
+    const fetchDashboardData = async () => {
       try {
-        // Simulate API call
-        setTimeout(() => {
-          setStats({
-            totalStudents: 1245,
-            totalTeachers: 48,
-            totalClasses: 36,
-            totalAssignments: 528,
-            averageScore: 78.5,
-            classAverages: [
-              { id: '1', name: 'Mathematics', teacher: 'Dr. Smith', studentCount: 32, averageScore: 82 },
-              { id: '2', name: 'Physics', teacher: 'Prof. Johnson', studentCount: 28, averageScore: 78 },
-              { id: '3', name: 'Chemistry', teacher: 'Dr. Williams', studentCount: 25, averageScore: 75 },
-              { id: '4', name: 'Biology', teacher: 'Dr. Brown', studentCount: 30, averageScore: 85 },
-            ]
+        setLoading(true);
+        
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
+        if (user.role === 'teacher') {
+          const teacherData = await dashboardService.getTeacherDashboard(user.id);
+          setDashboardData({
+            isTeacher: true,
+            totalClasses: teacherData.totalClasses,
+            totalStudents: teacherData.totalStudents,
+            totalAssignments: teacherData.totalAssignments,
+            submissionsNeedingGrading: teacherData.submissionsNeedingGrading,
+            recentAssignments: teacherData.recentAssignments,
+            recentGrades: [],
+            classProgress: []
           });
-          setLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error('Error fetching school stats:', error);
+        } else {
+          const studentData = await dashboardService.getStudentDashboard(user.id);
+          setDashboardData({
+            isTeacher: false,
+            totalClasses: studentData.totalClasses,
+            overallAverage: studentData.overallAverage,
+            recentAssignments: studentData.recentAssignments,
+            recentGrades: studentData.recentGrades,
+            classProgress: studentData.classProgress
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
         setLoading(false);
       }
     };
     
-    fetchSchoolStats();
-  }, []);
+    fetchDashboardData();
+  }, [user]);
 
-  if (loading || !stats) {
+  if (loading || !dashboardData) {
     return (
       <AppLayout title="Loading...">
         <div className="flex justify-center items-center h-64">
@@ -72,165 +113,283 @@ export default function DashboardPage() {
     );
   }
 
+  if (error) {
+    return (
+      <AppLayout title="Error">
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!dashboardData) return null;
+  
+  const isTeacher = dashboardData.isTeacher;
+  const hasRecentAssignments = dashboardData.recentAssignments.length > 0;
+  const hasRecentGrades = dashboardData.recentGrades.length > 0;
+  const hasClassProgress = dashboardData.classProgress.length > 0;
+
   return (
     <AppLayout 
-      title="School Overview"
+      title={isTeacher ? 'Teacher Dashboard' : 'My Dashboard'}
       headerActions={
         <button
           type="button"
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
-          Generate Report
+          {isTeacher ? 'Generate Report' : 'View All'}
         </button>
       }
     >
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-5 mt-6 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Students"
-          value={stats.totalStudents.toLocaleString()}
-          icon={<UsersIcon className="h-6 w-6" />}
-          trend={{ value: '12%', isPositive: true }}
-        />
-        <StatCard
-          title="Total Teachers"
-          value={stats.totalTeachers.toLocaleString()}
-          icon={<UserGroupIcon className="h-6 w-6" />}
-          trend={{ value: '5%', isPositive: true }}
-        />
-        <StatCard
-          title="Total Classes"
-          value={stats.totalClasses}
-          icon={<AcademicCapIcon className="h-6 w-6" />}
-        />
-        <StatCard
-          title="Assignments"
-          value={stats.totalAssignments.toLocaleString()}
-          icon={<DocumentTextIcon className="h-6 w-6" />}
-          trend={{ value: '8%', isPositive: true }}
-        />
+        {isTeacher ? (
+          <>
+            <StatCard
+              title="Total Classes"
+              value={dashboardData.totalClasses.toString()}
+              icon={<AcademicCapIcon className="h-6 w-6" />}
+            />
+            <StatCard
+              title="Total Students"
+              value={dashboardData.totalStudents?.toString() || '0'}
+              icon={<UsersIcon className="h-6 w-6" />}
+            />
+            <StatCard
+              title="Assignments"
+              value={dashboardData.totalAssignments?.toString() || '0'}
+              icon={<DocumentTextIcon className="h-6 w-6" />}
+            />
+            <StatCard
+              title="To Grade"
+              value={dashboardData.submissionsNeedingGrading?.toString() || '0'}
+              icon={<ClockIcon className="h-6 w-6" />}
+              className={dashboardData.submissionsNeedingGrading ? 'bg-amber-50' : ''}
+            />
+          </>
+        ) : (
+          <>
+            <StatCard
+              title="My Classes"
+              value={dashboardData.totalClasses.toString()}
+              icon={<AcademicCapIcon className="h-6 w-6" />}
+            />
+            <StatCard
+              title="Overall Average"
+              value={`${dashboardData.overallAverage?.toFixed(1) || '0'}%`}
+              icon={<DocumentTextIcon className="h-6 w-6" />}
+            />
+            <StatCard
+              title="Upcoming Assignments"
+              value={dashboardData.recentAssignments?.length.toString() || '0'}
+              icon={<ClockIcon className="h-6 w-6" />}
+            />
+            <StatCard
+              title="Recent Grades"
+              value={dashboardData.recentGrades?.length.toString() || '0'}
+              icon={<DocumentTextIcon className="h-6 w-6" />}
+            />
+          </>
+        )}
       </div>
 
-      {/* Class Performance */}
-      <div className="mt-8">
-        <div className="sm:flex sm:items-center">
-          <div className="sm:flex-auto">
-            <h2 className="text-lg font-medium text-gray-900">Class Performance</h2>
-            <p className="mt-1 text-sm text-gray-700">
-              Average scores and student count for each class
-            </p>
+      {/* Upcoming Assignments */}
+      {hasRecentAssignments && (
+        <div className="mt-8">
+          <div className="sm:flex sm:items-center">
+            <div className="sm:flex-auto">
+              <h2 className="text-lg font-medium text-gray-900">
+                {isTeacher ? 'Recent Assignments' : 'Upcoming Assignments'}
+              </h2>
+              <p className="mt-1 text-sm text-gray-700">
+                {isTeacher 
+                  ? 'Recently created assignments across your classes' 
+                  : 'Your upcoming assignment deadlines'}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
+            <ul className="divide-y divide-gray-200">
+              {dashboardData.recentAssignments.map((assignment) => (
+                <li key={assignment.id} className="px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {assignment.title}
+                      </p>
+                      {assignment.class?.name && (
+                        <p className="text-sm text-gray-500">
+                          {assignment.class.name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-sm text-gray-500 mr-4">
+                        Due {new Date(assignment.due_date).toLocaleDateString()}
+                      </span>
+                      <a 
+                        href={`/assignments/${assignment.id}`} 
+                        className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                      >
+                        View
+                      </a>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {!hasRecentAssignments && (
+              <div className="px-6 py-4 text-center text-sm text-gray-500">
+                {isTeacher ? 'No recent assignments' : 'No upcoming assignments'}
+              </div>
+            )}
           </div>
         </div>
-        <div className="mt-4 flex flex-col">
-          <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                        Class
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Teacher
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Students
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Average Score
-                      </th>
-                      <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                        <span className="sr-only">View</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {stats.classAverages.map((classItem) => (
-                      <tr key={classItem.id}>
-                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                          {classItem.name}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {classItem.teacher}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {classItem.studentCount}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <span className="font-medium">{classItem.averageScore}%</span>
-                            <div className="ml-2 flex items-center">
-                              {classItem.averageScore >= 80 ? (
-                                <>
-                                  <ArrowUpIcon className="h-4 w-4 text-green-500" aria-hidden="true" />
-                                  <span className="text-xs text-green-600 ml-0.5">
-                                    {Math.floor(Math.random() * 10) + 1}%
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <ArrowDownIcon className="h-4 w-4 text-red-500" aria-hidden="true" />
-                                  <span className="text-xs text-red-600 ml-0.5">
-                                    {Math.floor(Math.random() * 5) + 1}%
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <a href={`/class/${classItem.id}`} className="text-blue-600 hover:text-blue-900">
-                            View<span className="sr-only">, {classItem.name}</span>
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      )}
+
+      {/* Recent Grades (Student View) */}
+      {!isTeacher && hasRecentGrades && (
+        <div className="mt-8">
+          <h2 className="text-lg font-medium text-gray-900">Recent Grades</h2>
+          <div className="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Assignment
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Class
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Grade
+                  </th>
+                  <th scope="col" className="relative px-6 py-3">
+                    <span className="sr-only">View</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {dashboardData.recentGrades?.map((grade) => (
+                  <tr key={grade.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {grade.assignment.title}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {grade.assignment.class?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {grade.grade}/{grade.assignment.total_points} 
+                      <span className="text-gray-500">
+                        ({(grade.grade / grade.assignment.total_points * 100).toFixed(1)}%)
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href={`/assignments/${grade.id}`} className="text-blue-600 hover:text-blue-900">
+                        View
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Class Progress (Student View) */}
+      {!isTeacher && hasClassProgress && (
+        <div className="mt-8">
+          <h2 className="text-lg font-medium text-gray-900">Class Progress</h2>
+          <div className="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Class
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Progress
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Current Grade
+                  </th>
+                  <th scope="col" className="relative px-6 py-3">
+                    <span className="sr-only">View</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {dashboardData.classProgress?.map((classItem) => (
+                  <tr key={classItem.class_id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {classItem.class_name || 'Unnamed Class'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-blue-600 h-2.5 rounded-full" 
+                          style={{ width: `${classItem.average_score}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-gray-500 mt-1 inline-block">
+                        {classItem.average_score.toFixed(1)}% Complete
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        classItem.current_grade === 'A' ? 'bg-green-100 text-green-800' :
+                        classItem.current_grade === 'B' ? 'bg-blue-100 text-blue-800' :
+                        classItem.current_grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {classItem.current_grade}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href={`/classes/${classItem.class_id}`} className="text-blue-600 hover:text-blue-900">
+                        View
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Submissions Needing Grading (Teacher View) */}
+      {isTeacher && dashboardData.submissionsNeedingGrading ? (
+        <div className="mt-8">
+          <div className="sm:flex sm:items-center">
+            <div className="sm:flex-auto">
+              <h2 className="text-lg font-medium text-gray-900">Submissions Needing Grading</h2>
+              <p className="mt-1 text-sm text-gray-700">
+                {dashboardData.submissionsNeedingGrading} assignments waiting for your review
+              </p>
+            </div>
+            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+              <a
+                href="/grading"
+                className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+              >
+                Grade Now
+              </a>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="mt-8">
-        <h2 className="text-lg font-medium text-gray-900">Recent Activity</h2>
-        <div className="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
-          <ul role="list" className="divide-y divide-gray-200">
-            {[
-              { id: 1, user: 'John Doe', action: 'submitted', item: 'Math Assignment #5', time: '2 hours ago' },
-              { id: 2, user: 'Jane Smith', action: 'graded', item: 'Physics Quiz #3', time: '4 hours ago' },
-              { id: 3, user: 'Mike Johnson', action: 'posted', item: 'New announcement in Biology', time: '1 day ago' },
-              { id: 4, user: 'Sarah Williams', action: 'commented', item: 'on Chemistry discussion', time: '2 days ago' },
-            ].map((activity) => (
-              <li key={activity.id} className="px-6 py-4">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <span className="text-blue-600 font-medium">
-                        {activity.user.split(' ').map(n => n[0]).join('')}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {activity.user}
-                    </p>
-                    <p className="text-sm text-gray-500 truncate">
-                      {activity.action} {activity.item}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">{activity.time}</p>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      ) : null}
     </AppLayout>
   );
 }

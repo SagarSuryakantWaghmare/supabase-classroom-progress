@@ -21,13 +21,6 @@ type Class = {
   updated_at: string;
 };
 
-type ClassEnrollment = {
-  id: string;
-  class_id: string;
-  student_id: string;
-  enrollment_date: string;
-  status: 'active' | 'completed' | 'dropped';
-};
 
 type Assignment = {
   id: string;
@@ -410,15 +403,26 @@ export const dashboardService = {
   // Get dashboard data for a student
   getStudentDashboard: async (studentId: string): Promise<StudentDashboardData> => {
     // Get student's class enrollments
+    interface EnrollmentWithClass {
+      class: {
+        id: string;
+        name: string;
+      } | null;
+    }
+
     const { data: enrollments, error: enrollmentsError } = await supabase
-      .from('class_enrollments')
+      .from('enrollments')
       .select('class:classes(*)')
       .eq('student_id', studentId)
       .eq('status', 'active');
       
     if (enrollmentsError) throw enrollmentsError;
     
-    const classIds = enrollments?.map(e => e.class?.id).filter(Boolean) as string[];
+    // Type assertion to ensure we have the correct shape
+    const typedEnrollments = enrollments as unknown as Array<{ class: { id: string } | null }>;
+    const classIds = typedEnrollments
+      .map(e => e.class?.id)
+      .filter((id): id is string => Boolean(id));
     
     // Get upcoming assignments
     let upcomingAssignments: Array<Assignment & { class?: { name: string } }> = [];

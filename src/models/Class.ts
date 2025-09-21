@@ -139,7 +139,14 @@ export class ClassService {
 
     if (error) return { data: null, error };
 
-    const classesWithStats = data.map((cls: any) => {
+    interface ClassWithStudents extends IClass {
+      students?: Array<{
+        id: string;
+        progress?: Array<{ score: number | null }>;
+      }>;
+    }
+
+    const classesWithStats = data.map((cls: ClassWithStudents) => {
       interface StudentWithProgress {
         id: string;
         progress?: Array<{ score: number | null }>;

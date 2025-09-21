@@ -8,17 +8,12 @@ export async function GET(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
   
   try {
-    let query = supabase
+    const { data } = await supabase
       .from('assignments')
-      .select('*');
+      .select('*')
+      .eq('class_id', classId)
+      .order('due_date', { ascending: true });
 
-    if (classId) {
-      query = query.eq('class_id', classId);
-    }
-
-    const { data, error } = await query.order('due_date', { ascending: true });
-
-    if (error) throw error;
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
@@ -33,7 +28,7 @@ export async function POST(request: Request) {
   const { title, description, due_date, max_score, class_id } = await request.json();
   
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('assignments')
       .insert([{ 
         title, 

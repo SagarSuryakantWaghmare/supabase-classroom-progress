@@ -6,13 +6,14 @@ export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
   
   try {
-    const { data: classes, error } = await supabase
+    const { data } = await supabase
       .from('classes')
       .select('*')
       .order('name', { ascending: true });
 
-    if (error) throw error;
-    return NextResponse.json(classes);
+    if (!data) throw new Error('No data returned');
+
+    return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to fetch classes' },
@@ -26,13 +27,14 @@ export async function POST(request: Request) {
   const { name, description } = await request.json();
   
   try {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('classes')
       .insert([{ name, description }])
       .select()
       .single();
 
-    if (error) throw error;
+    if (!data) throw new Error('No data returned');
+
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     return NextResponse.json(

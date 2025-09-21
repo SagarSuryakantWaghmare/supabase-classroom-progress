@@ -2,6 +2,9 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+// User related types are now defined in the models/User.ts file
+
+
 export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
   
@@ -14,14 +17,12 @@ export async function GET() {
       );
     }
 
-    // Only fetch basic user info, not sensitive data
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, email, name, role, class_id')
-      .order('name', { ascending: true });
+    const { data: users, error: fetchError } = await supabase
+      .from('users')
+      .select('*');
 
-    if (error) throw error;
-    return NextResponse.json(data);
+    if (fetchError) throw fetchError;
+    return NextResponse.json(users);
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to fetch users' },
@@ -36,39 +37,52 @@ export async function POST(request: Request) {
   
   try {
     // 1. Create auth user
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    const { data: authData, error: createUserError } = await supabase.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: {
-          name,
-          role,
-          class_id: class_id || null
-        }
+      email_confirm: true,
+      user_metadata: {
+        name,
+        role,
+        class_id
       }
     });
 
-    if (signUpError) throw signUpError;
+    if (createUserError) throw createUserError;
+    
+    const user = authData?.user;
 
     // 2. Create profile in profiles table
-    if (authData.user) {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .insert([{ 
-          id: authData.user.id,
-          email,
-          name,
-          role,
-          class_id: class_id || null
-        }])
-        .select()
-        .single();
-
-      if (profileError) throw profileError;
-      return NextResponse.json(profileData, { status: 201 });
+    interface ProfileData {
+      id: string;
+      email: string;
+      name: string;
+      role: string;
+      class_id: string | null;
+      created_at: string;
+      updated_at: string;
     }
 
-    throw new Error('Failed to create user');
+    if (!user) {
+      throw new Error('User creation failed');
+    }
+
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .insert([{ 
+        id: user.id,
+        email,
+        name,
+        role,
+        class_id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (profileError) throw profileError;
+    return NextResponse.json(profileData, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to create user' },

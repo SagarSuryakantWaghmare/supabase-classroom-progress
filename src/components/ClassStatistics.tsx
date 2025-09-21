@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useClassAverages, type ClassAverage } from '@/hooks/useClassAverages';
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useClassAverages } from '@/hooks/useClassAverages';
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2, Users, Award, FileText } from 'lucide-react';
@@ -17,11 +16,7 @@ type User = {
   name: string;
 };
 
-type ProgressData = {
-  student_id: string;
-  average_score: number;
-  total_assignments: number;
-};
+// ProgressData type is not used in the component
 
 type StudentData = {
   student_id: string;
@@ -222,7 +217,7 @@ export default function ClassStatistics({ classId }: ClassStatisticsProps) {
       <Card className="border-orange-200">
         <CardHeader>
           <CardTitle className="text-orange-900">Student Performance</CardTitle>
-          <CardDescription>Detailed view of each student's progress</CardDescription>
+          <CardDescription>Detailed view of each student&apos;s progress</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border border-orange-100">

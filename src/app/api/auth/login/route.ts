@@ -12,22 +12,26 @@ export async function POST(request: Request) {
       password,
     });
 
-    if (error) throw error;
+    if (!data.session) throw new Error('No session returned');
+
+    if (!data?.user) throw new Error('No user data returned');
     
     // Get additional user data from profiles table
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, class_id, name')
       .eq('id', data.user.id)
       .single();
 
+    if (profileError) throw profileError;
+
     return NextResponse.json({
       user: {
         id: data.user.id,
         email: data.user.email,
-        name: data.user.user_metadata?.name || profile?.name,
         role: profile?.role,
-        class_id: profile?.class_id
+        classId: profile?.class_id,
+        name: profile?.name
       },
       session: data.session
     });

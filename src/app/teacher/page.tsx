@@ -7,9 +7,7 @@ import {
   AcademicCapIcon, 
   UserGroupIcon, 
   DocumentTextIcon,
-  ClockIcon,
-  ArrowUpIcon,
-  ArrowDownIcon
+  ClockIcon
 } from '@heroicons/react/24/outline';
 
 interface ClassInfo {

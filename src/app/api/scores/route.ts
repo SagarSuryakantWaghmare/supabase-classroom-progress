@@ -5,29 +5,19 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const assignmentId = searchParams.get('assignmentId');
-  const studentId = searchParams.get('studentId');
   const supabase = createRouteHandlerClient({ cookies });
   
   try {
-    let query = supabase
+    const { data } = await supabase
       .from('scores')
       .select(`
         *,
-        assignments(*),
-        profiles!scores_student_id_fkey(*)
-      `);
+        assignments (*),
+        profiles!scores_student_id_fkey (name)
+      `)
+      .eq('assignment_id', assignmentId);
 
-    if (assignmentId) {
-      query = query.eq('assignment_id', assignmentId);
-    }
-    
-    if (studentId) {
-      query = query.eq('student_id', studentId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
+    if (!data) throw new Error('No data returned');
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
@@ -44,20 +34,18 @@ export async function POST(request: Request) {
   try {
     const { data, error } = await supabase
       .from('scores')
-      .upsert(
-        { 
-          assignment_id,
-          student_id,
-          score: Number(score),
-          feedback,
-          updated_at: new Date().toISOString()
-        },
-        { onConflict: 'assignment_id,student_id' }
-      )
+      .upsert({
+        student_id,
+        assignment_id,
+        score: Number(score),
+        submitted_at: new Date().toISOString(),
+        ...(feedback && { feedback })
+      })
       .select()
       .single();
 
     if (error) throw error;
+    if (!data) throw new Error('No data returned');
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     return NextResponse.json(

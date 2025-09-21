@@ -1,10 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import { Session } from '@supabase/supabase-js';
 import { IUser, UserRole } from '@/models/User';
 
 export interface AuthResponse {
   user: IUser | null;
   error: Error | null;
-  session: any | null;
+  session: Session | null;
 }
 
 export interface SignUpData {
@@ -162,7 +163,7 @@ class AuthService {
   }
 
   // Listen for auth state changes
-  static onAuthStateChange(callback: (event: string, session: any) => void) {
+  static onAuthStateChange(callback: (event: string, session: Session | null) => void) {
     return supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         // Get the full user profile
